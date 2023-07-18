@@ -42,7 +42,7 @@ on:
       - 'conanfile.py'
       - 'CMakeLists.txt'
       - '.github/workflows/conan-package.yml'
-      - '.github/worflows/requirements-conan-package.txt'
+      - '.github/workflows/requirements-conan-package.txt'
     branches:
       - main
       - 'CURA-*'
