@@ -40,7 +40,7 @@ class CuraEnginePostprocessPluginConan(ConanFile):
         return {
             "gcc": "11",
             "clang": "14",
-            "apple-clang": "14",
+            "apple-clang": "13",
             "msvc": "192",
             "visual_studio": "17",
         }
@@ -66,6 +66,7 @@ class CuraEnginePostprocessPluginConan(ConanFile):
         self.options["grpc"].php_plugin = False
         self.options["grpc"].python_plugin = False
         self.options["grpc"].ruby_plugin = False
+        self.options["asio-grpc"].local_allocator = "recycling_allocator"
 
     def layout(self):
         cmake_layout(self)
@@ -122,12 +123,6 @@ class CuraEnginePostprocessPluginConan(ConanFile):
 
     def package(self):
         copy(self, pattern="LICENSE", dst=os.path.join(self.package_folder, "licenses"), src=self.source_folder)
-        cmake = CMake(self)
-        cmake.install()
+        ext = ".exe" if self.settings.os == "Windows" else ""
+        copy(self, pattern=f"curaengine_plugin_postprocess{ext}", dst="bin", src=os.path.join(self.build_folder))
 
-        rmdir(self, os.path.join(self.package_folder, "lib", "pkgconfig"))
-        rmdir(self, os.path.join(self.package_folder, "lib", "cmake"))
-        rmdir(self, os.path.join(self.package_folder, "share"))
-        rm(self, "*.la", os.path.join(self.package_folder, "lib"))
-        rm(self, "*.pdb", os.path.join(self.package_folder, "lib"))
-        rm(self, "*.pdb", os.path.join(self.package_folder, "bin"))

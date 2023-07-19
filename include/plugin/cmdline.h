@@ -16,15 +16,15 @@ static const auto VERSION_ID = fmt::format(FMT_COMPILE("{} {}"), NAME, VERSION);
 constexpr std::string_view USAGE = R"({0}.
 
 Usage:
-  curaengine_plugin_postprocess [--address=<address>] [--port=<port>]
+  curaengine_plugin_postprocess [--address <address>] [--port <port>]
   curaengine_plugin_postprocess (-h | --help)
   curaengine_plugin_postprocess --version
 
 Options:
   -h --help                 Show this screen.
   --version                 Show version.
-  -ip --address=<address>   The IP address to connect the socket to [default: localhost].
-  -p --port=<port>          The port number to connect the socket to [default: 33701].
+  -ip --address <address>   The IP address to connect the socket to [default: localhost].
+  -p --port <port>          The port number to connect the socket to [default: 33701].
 )";
 
 } // namespace plugin::cmdline
