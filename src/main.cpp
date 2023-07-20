@@ -11,10 +11,8 @@
 #include <boost/asio/detached.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <fmt/format.h> // Formatting library
-#include <fmt/ranges.h> // Formatting library for ranges
 #include <range/v3/to_container.hpp>
 #include <range/v3/view/drop_last.hpp>
-#include <range/v3/view/reverse.hpp>
 #include <range/v3/view/take_last.hpp>
 #include <range/v3/view/tokenize.hpp>
 #include <range/v3/view/transform.hpp>
@@ -30,14 +28,14 @@
 #include <regex>
 #include <thread>
 
-struct plugin_metadata
+struct PluginMetadata
 {
     std::string plugin_name{ plugin::cmdline::NAME };
     std::string slot_version{ "0.1.0-alpha.1" };
     std::string plugin_version{ plugin::cmdline::VERSION };
 };
 
-static plugin_metadata metadata{};
+static const PluginMetadata metadata{};
 
 
 int main(int argc, const char** argv)
@@ -115,7 +113,7 @@ int main(int argc, const char** argv)
                     request,
                     writer,
                     boost::asio::use_awaitable);
-                google::protobuf::Empty response{};
+                const google::protobuf::Empty response{};
                 co_await agrpc::finish(writer, response, grpc::Status::OK, boost::asio::use_awaitable);
 
                 auto c_uuid = server_context.client_metadata().find("cura-engine-uuid");
@@ -124,7 +122,7 @@ int main(int argc, const char** argv)
                     spdlog::warn("cura-engine-uuid not found in client metadata");
                     continue;
                 }
-                std::string client_metadata = std::string{ c_uuid->second.data(), c_uuid->second.size() };
+                const std::string client_metadata = std::string{ c_uuid->second.data(), c_uuid->second.size() };
 
                 // We create a new settings map for this uuid
                 std::unordered_map<std::string, std::string> uuid_settings;
