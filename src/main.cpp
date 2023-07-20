@@ -150,7 +150,7 @@ int main(int argc, const char** argv)
                     continue;
                 }
                 std::string client_metadata = std::string { c_uuid->second.data(), c_uuid->second.size() };
-                auto jerk_enabled = settings[client_metadata].at("jerk_enabled") == "true";
+                auto jerk_enabled = settings[client_metadata].at("jerk_enabled") == "True";
                 spdlog::info("jerk_enabled: {} for {}", jerk_enabled, client_metadata);
 
                 grpc::Status status = grpc::Status::OK;
