@@ -1,19 +1,17 @@
-#include <map>
-#include <optional>
-#include <queue>
-#include <regex>
-#include <thread>
+#include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
+#include "cura/plugins/slots/broadcast/v0/broadcast.pb.h"
+#include "cura/plugins/slots/handshake/v0/handshake.grpc.pb.h"
+#include "cura/plugins/slots/handshake/v0/handshake.pb.h"
+#include "cura/plugins/slots/postprocess/v0/postprocess.grpc.pb.h"
+#include "cura/plugins/slots/postprocess/v0/postprocess.pb.h"
+#include "plugin/cmdline.h" // Custom command line argument definitions
 
 #include <agrpc/asio_grpc.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/signal_set.hpp>
-#include <docopt/docopt.h> // Library for parsing command line arguments
 #include <fmt/format.h> // Formatting library
 #include <fmt/ranges.h> // Formatting library for ranges
-#include <google/protobuf/empty.pb.h>
-#include <grpcpp/server.h>
-#include <grpcpp/server_builder.h>
 #include <range/v3/to_container.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/reverse.hpp>
@@ -22,15 +20,15 @@
 #include <range/v3/view/transform.hpp>
 #include <spdlog/spdlog.h> // Logging library
 
-#include "plugin/cmdline.h" // Custom command line argument definitions
-
-#include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
-#include "cura/plugins/slots/broadcast/v0/broadcast.pb.h"
-#include "cura/plugins/slots/handshake/v0/handshake.grpc.pb.h"
-#include "cura/plugins/slots/handshake/v0/handshake.pb.h"
-
-#include "cura/plugins/slots/postprocess/v0/postprocess.grpc.pb.h"
-#include "cura/plugins/slots/postprocess/v0/postprocess.pb.h"
+#include <docopt/docopt.h> // Library for parsing command line arguments
+#include <google/protobuf/empty.pb.h>
+#include <grpcpp/server.h>
+#include <grpcpp/server_builder.h>
+#include <map>
+#include <optional>
+#include <queue>
+#include <regex>
+#include <thread>
 
 struct plugin_metadata
 {
@@ -46,7 +44,8 @@ int main(int argc, const char** argv)
 {
     spdlog::set_level(spdlog::level::debug);
     constexpr bool show_help = true;
-    const std::map<std::string, docopt::value> args = docopt::docopt(fmt::format(plugin::cmdline::USAGE, plugin::cmdline::NAME), { argv + 1, argv + argc }, show_help, plugin::cmdline::VERSION_ID);
+    const std::map<std::string, docopt::value> args
+        = docopt::docopt(fmt::format(plugin::cmdline::USAGE, plugin::cmdline::NAME), { argv + 1, argv + argc }, show_help, plugin::cmdline::VERSION_ID);
 
     std::unique_ptr<grpc::Server> server;
 
@@ -76,7 +75,13 @@ int main(int argc, const char** argv)
 
                 cura::plugins::slots::handshake::v0::CallRequest request;
                 grpc::ServerAsyncResponseWriter<cura::plugins::slots::handshake::v0::CallResponse> writer{ &server_context };
-                co_await agrpc::request(&cura::plugins::slots::handshake::v0::HandshakeService::AsyncService::RequestCall, handshake_service, server_context, request, writer, boost::asio::use_awaitable);
+                co_await agrpc::request(
+                    &cura::plugins::slots::handshake::v0::HandshakeService::AsyncService::RequestCall,
+                    handshake_service,
+                    server_context,
+                    request,
+                    writer,
+                    boost::asio::use_awaitable);
                 spdlog::info("Received handshake request");
                 spdlog::info("Slot ID: {}, version_range: {}", static_cast<int>(request.slot_id()), request.version_range());
 
@@ -94,40 +99,48 @@ int main(int argc, const char** argv)
 
     // Listen to the Broadcast channel
     std::unordered_map<std::string, std::unordered_map<std::string, std::string>> settings;
-    boost::asio::co_spawn(grpc_context,
-                          [&]() -> boost::asio::awaitable<void>
-                          {
-                              while (true)
-                              {
-                                  grpc::ServerContext server_context;
-                                  cura::plugins::slots::broadcast::v0::BroadcastServiceSettingsRequest request;
-                                  grpc::ServerAsyncResponseWriter<google::protobuf::Empty> writer{ &server_context };
-                                  co_await agrpc::request(&cura::plugins::slots::broadcast::v0::BroadcastService::AsyncService::RequestBroadcastSettings, broadcast_service, server_context, request, writer, boost::asio::use_awaitable);
-                                  google::protobuf::Empty response{};
-                                  co_await agrpc::finish(writer, response, grpc::Status::OK, boost::asio::use_awaitable);
+    boost::asio::co_spawn(
+        grpc_context,
+        [&]() -> boost::asio::awaitable<void>
+        {
+            while (true)
+            {
+                grpc::ServerContext server_context;
+                cura::plugins::slots::broadcast::v0::BroadcastServiceSettingsRequest request;
+                grpc::ServerAsyncResponseWriter<google::protobuf::Empty> writer{ &server_context };
+                co_await agrpc::request(
+                    &cura::plugins::slots::broadcast::v0::BroadcastService::AsyncService::RequestBroadcastSettings,
+                    broadcast_service,
+                    server_context,
+                    request,
+                    writer,
+                    boost::asio::use_awaitable);
+                google::protobuf::Empty response{};
+                co_await agrpc::finish(writer, response, grpc::Status::OK, boost::asio::use_awaitable);
 
-                                  auto c_uuid = server_context.client_metadata().find("cura-engine-uuid");
-                                  if (c_uuid == server_context.client_metadata().end()) {
-                                      spdlog::warn("cura-engine-uuid not found in client metadata");
-                                      continue;
-                                  }
-                                  std::string client_metadata = std::string { c_uuid->second.data(), c_uuid->second.size() };
+                auto c_uuid = server_context.client_metadata().find("cura-engine-uuid");
+                if (c_uuid == server_context.client_metadata().end())
+                {
+                    spdlog::warn("cura-engine-uuid not found in client metadata");
+                    continue;
+                }
+                std::string client_metadata = std::string{ c_uuid->second.data(), c_uuid->second.size() };
 
-                                  // We create a new settings map for this uuid
-                                  std::unordered_map<std::string, std::string> uuid_settings;
+                // We create a new settings map for this uuid
+                std::unordered_map<std::string, std::string> uuid_settings;
 
-                                  // We insert all the settings from the request to the uuid_settings map
-                                  for (const auto& [key, value] : request.global_settings().settings())
-                                  {
-                                      uuid_settings.emplace(key, value);
-                                      spdlog::info("Received setting: {} = {}", key, value);
-                                  }
+                // We insert all the settings from the request to the uuid_settings map
+                for (const auto& [key, value] : request.global_settings().settings())
+                {
+                    uuid_settings.emplace(key, value);
+                    spdlog::info("Received setting: {} = {}", key, value);
+                }
 
-                                  // We save the settings for this uuid in the global settings map
-                                  settings[client_metadata] = uuid_settings;
-                              }
-                          },
-             boost::asio::detached);
+                // We save the settings for this uuid in the global settings map
+                settings[client_metadata] = uuid_settings;
+            }
+        },
+        boost::asio::detached);
 
 
     // Start the plugin modify process
@@ -141,15 +154,22 @@ int main(int argc, const char** argv)
                 grpc::ServerContext server_context;
                 cura::plugins::slots::postprocess::v0::CallRequest request;
                 grpc::ServerAsyncResponseWriter<cura::plugins::slots::postprocess::v0::CallResponse> writer{ &server_context };
-                co_await agrpc::request(&cura::plugins::slots::postprocess::v0::PostprocessModifyService::AsyncService::RequestCall, service, server_context, request, writer, boost::asio::use_awaitable);
+                co_await agrpc::request(
+                    &cura::plugins::slots::postprocess::v0::PostprocessModifyService::AsyncService::RequestCall,
+                    service,
+                    server_context,
+                    request,
+                    writer,
+                    boost::asio::use_awaitable);
                 cura::plugins::slots::postprocess::v0::CallResponse response;
 
                 auto c_uuid = server_context.client_metadata().find("cura-engine-uuid");
-                if (c_uuid == server_context.client_metadata().end()) {
+                if (c_uuid == server_context.client_metadata().end())
+                {
                     spdlog::warn("cura-engine-uuid not found in client metadata");
                     continue;
                 }
-                std::string client_metadata = std::string { c_uuid->second.data(), c_uuid->second.size() };
+                std::string client_metadata = std::string{ c_uuid->second.data(), c_uuid->second.size() };
                 auto jerk_enabled = settings[client_metadata].at("jerk_enabled") == "True";
                 spdlog::info("jerk_enabled: {} for {}", jerk_enabled, client_metadata);
 
@@ -161,9 +181,12 @@ int main(int argc, const char** argv)
                     {
                         std::string layer_string = layers[client_metadata].front();
 
-                        auto lines = layer_string
-                                   | ranges::views::tokenize(std::regex{"\n"}, -1)
-                                   | ranges::views::transform([](auto&& line) { return std::string{line}; })
+                        auto lines = layer_string | ranges::views::tokenize(std::regex{ "\n" }, -1)
+                                   | ranges::views::transform(
+                                         [](auto&& line)
+                                         {
+                                             return std::string{ line };
+                                         })
                                    | ranges::to<std::vector>;
 
                         if (lines.size() > 2)
