@@ -88,7 +88,7 @@ int main(int argc, const char** argv)
                 response.set_plugin_version(metadata.plugin_version);
                 response.set_slot_version(metadata.slot_version);
                 response.set_plugin_version(metadata.plugin_version);
-                response.mutable_broadcast_subscriptions()->Add("BroadcastSettings");
+                response.mutable_broadcast_subscriptions()->Add(cura::plugins::v0::SlotID::SETTINGS_BROADCAST);
 
                 co_await agrpc::finish(writer, response, grpc::Status::OK, boost::asio::use_awaitable);
             }
