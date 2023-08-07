@@ -79,7 +79,7 @@ class CuraEnginePostprocessPluginConan(ConanFile):
         self.requires("spdlog/1.11.0")
         self.requires("docopt.cpp/0.6.3")
         self.requires("range-v3/0.12.0")
-        self.requires("curaengine_grpc_definitions/latest@ultimaker/cura_10805")
+        self.requires("curaengine_grpc_definitions/latest@ultimaker/testing")
 
     def validate(self):
         # validate the minimum cpp standard supported. For C++ projects only
